@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ներդրումային Պորտֆելի Սիմուլյատոր</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background-color: #e3f7ff;
+    }
+    p, h1, h2, li, button {
+      font-size: 1.3rem;
+    }
+    .wide {
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 font-sans">
+  <div class="max-w-7xl mx-auto p-8">
+    <h1 class="text-4xl font-bold text-center mb-6">💼 Ներդրումային Պորտֆելի Սիմուլյատոր</h1>
+
+    <!-- Balance & Time -->
+    <div class="flex flex-col gap-2 justify-between items-center bg-white p-8 rounded-2xl shadow mb-6 wide">
+      <p class="text-xl" style="font-size: 1.6rem; padding: 2px; margin-bottom:30px;">Հաշվեկշիռ՝ <span id="balance" class="font-semibold">$10,000</span></p>
+      <p class="text-xl" style="font-size: 2.7rem; padding: 6px;">Տարի՝ <span id="year">2025</span></p>
+    </div>
+
+    <div class="flex justify-center mb-8">
+      <button id="nextYearBtn" class="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700">Հաջորդ տարի</button>
+    </div>
+
+    <!-- Annual Summary -->
+    <div class="bg-white p-8 rounded-2xl shadow mb-6 wide">
+      <h2 class="text-2xl font-semibold mb-2">📈 Տարեկան Արդյունքները</h2>
+      <ul id="yearlySummary" class="list-disc pl-6 space-y-2 text-lg"></ul>
+    </div>
+
+    <!-- Investment Options & Portfolio -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div class="bg-white p-8 rounded-2xl shadow wide">
+        <h2 class="text-2xl font-semibold mb-2">Հասանելի Ներդրումներ</h2>
+        <ul id="investmentsList" class="space-y-2"></ul>
+      </div>
+
+      <div class="bg-white p-8 rounded-2xl shadow wide">
+        <h2 class="text-2xl font-semibold mb-2">Քո Պորտֆելը</h2>
+        <ul id="portfolioList" class="space-y-2"></ul>
+      </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="bg-white p-8 rounded-2xl shadow mb-6 wide">
+      <h2 class="text-2xl font-semibold mb-2">📜 Գործարքների Պատմություն</h2>
+      <ul id="transactionHistory" class="text-lg list-disc pl-6 space-y-2"></ul>
+    </div>
+
+    <!-- Graph -->
+    <div class="bg-white p-8 rounded-2xl shadow mb-6 wide">
+      <h2 class="text-2xl font-semibold mb-2">📊 Քո Հաշվեկշռի Գրաֆիկը</h2>
+      <canvas id="balanceChart" height="100"></canvas>
+    </div>
+  </div>
+
+  <!-- Funny sound effects -->
+  <audio id="soundEffect1" src="https://www.myinstants.com/media/sounds/vine-boom.mp3"></audio>
+  <audio id="soundEffect2" src="https://www.myinstants.com/media/sounds/windows-error.mp3"></audio>
+  <audio id="soundEffect3" src="https://www.myinstants.com/media/sounds/wow-sound-effect.mp3"></audio>
+
+  <script>
+    const initialBalance = 10000;
+    let balance = initialBalance;
+    let year = 2025;
+    let portfolio = [];
+    let transactions = [];
+    let balanceHistory = [initialBalance];
+    let years = [year];
+    let yearlySummaryData = [];
+
+    const investments = [
+      { name: "Ոսկի", growthRate: 0.125, volatility: 0.25 },
+      { name: "Անշարժ գույք", growthRate: 0.175, volatility: 0.125 },
+      { name: "Բաժնետոմսեր", growthRate: 0.25, volatility: 0.5 },
+      { name: "Քրիպտո", growthRate: 0.375, volatility: 0.75 },
+      { name: "Պարտատոմսեր", growthRate: 0.075, volatility: 0.05 },
+    ];
+
+    const funnyEvents = [
+      "🦄 Հայաստանում միաեղջյուրի startup-ը դարձավ միլիարդանոց — դու արդեն բիզնես մագնատ ես:",
+      "🚀 Քո քրիպտոն 300%-ով բարձրացավ, որովհետև մեկը շփոթեց այն մի ուրիշի հետ:",
+      "🐱 Ձեր բաժնետոմսերը նվազել են, քանի որ ուղիղ հեռարձակման ժամանակ կատուն քայլել է գլխավոր տնօրենի ստեղնաշարով",
+      "🔥 Ձեր պորտֆելի մասին մեմը տարածվեց: Բոլորը հիմա ներդրումներ են անում:",
+      "😂 Դու ներդրում էիր արել կարտոֆիլային NFT-ում, ու հիմա միլիոնատեր ես:",
+      "👽 Այլմոլորակայինները եկան ու որոշեցին որ ամենաթանկ բանը՝ ոսկին է:",
+      "📉 Քո բաժնետոմսերը ընկան, որովհետև տնօրենը պատահաբար սխալներ նշեց:",
+      "🏡 Քո անշարժ գույքը նկարահանվեց սերիալում — հիմա այն զբոսաշրջային վայր է:",
+    ];
+
+    const balanceEl = document.getElementById("balance");
+    const yearEl = document.getElementById("year");
+    const investmentsList = document.getElementById("investmentsList");
+    const portfolioList = document.getElementById("portfolioList");
+    const transactionHistory = document.getElementById("transactionHistory");
+    const yearlySummary = document.getElementById("yearlySummary");
+    const sounds = [
+      document.getElementById("soundEffect1"),
+      document.getElementById("soundEffect2"),
+      document.getElementById("soundEffect3")
+    ];
+
+    const chartCtx = document.getElementById('balanceChart').getContext('2d');
+    const balanceChart = new Chart(chartCtx, {
+      type: 'line',
+      data: {
+        labels: years,
+        datasets: [{
+          label: 'Հաշվեկշիռ ($)',
+          data: balanceHistory,
+          fill: true,
+          borderColor: '#10B981',
+          backgroundColor: 'rgba(16, 185, 129, 0.2)',
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: false
+          }
+        }
+      }
+    });
+
+    function playRandomSound() {
+      const sound = sounds[Math.floor(Math.random() * sounds.length)];
+      sound.currentTime = 0;
+      sound.play();
+    }
+
+    function updateDisplay() {
+      balanceEl.textContent = `$${balance.toFixed(2)}`;
+      yearEl.textContent = year;
+
+      investmentsList.innerHTML = "";
+      investments.forEach((inv, i) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <div class="flex justify-between items-center bg-gray-100 p-2 rounded">
+            <div>
+              <strong>${inv.name}</strong><br>
+              Աճ՝ ${(inv.growthRate * 100).toFixed(1)}% ± ${(inv.volatility * 100).toFixed(1)}%
+            </div>
+            <button onclick="invest(${i})" class="bg-blue-600 text-white px-2 py-1 rounded">Ներդրիր $1000</button>
+          </div>
+        `;
+        investmentsList.appendChild(li);
+      });
+
+      portfolioList.innerHTML = "";
+      portfolio.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = `${item.name}: $${item.amount.toFixed(2)}`;
+        portfolioList.appendChild(li);
+      });
+
+      transactionHistory.innerHTML = "";
+      transactions.slice().reverse().forEach((t) => {
+        const li = document.createElement("li");
+        li.textContent = t;
+        transactionHistory.appendChild(li);
+      });
+
+      yearlySummary.innerHTML = "";
+      yearlySummaryData.forEach(s => {
+        const li = document.createElement("li");
+        li.textContent = `Տարի ${s.year} — Ընդհանուր արժեքը: $${s.total.toFixed(2)}, Եկամուտը: $${s.profit.toFixed(2)}`;
+        yearlySummary.appendChild(li);
+      });
+
+      balanceChart.update();
+    }
+
+    function invest(index) {
+      if (balance >= 1000) {
+        const name = investments[index].name;
+        const existing = portfolio.find(item => item.name === name);
+        if (existing) {
+          existing.amount += 1000;
+        } else {
+          portfolio.push({ name, amount: 1000 });
+        }
+        balance -= 1000;
+        transactions.push(`💸 Ներդրվեց $1000 → ${name} (${year})`);
+        updateDisplay();
+      } else {
+        alert("Բավարար միջոցներ չկան:");
+      }
+    }
+
+    function nextYear() {
+      year++;
+
+      if (Math.random() < 0.4) {
+        const funny = funnyEvents[Math.floor(Math.random() * funnyEvents.length)];
+        transactions.push(`🤣 ${funny}`);
+        playRandomSound();
+      }
+
+      portfolio = portfolio.map(item => {
+        const inv = investments.find(i => i.name === item.name);
+        const randFactor = (Math.random() * 2 - 1) * inv.volatility;
+        const growth = inv.growthRate + randFactor;
+        const prevAmount = item.amount;
+        item.amount *= (1 + growth);
+        const change = item.amount - prevAmount;
+        transactions.push(`📈 ${item.name} փոխվեց ${(growth * 100).toFixed(2)}% → $${change.toFixed(2)} (${year})`);
+        return item;
+      });
+
+      const total = portfolio.reduce((sum, i) => sum + i.amount, balance);
+      const last = balanceHistory[balanceHistory.length - 1];
+      const profit = total - last;
+
+      balance = initialBalance - portfolio.reduce((sum, i) => sum + i.amount, 0);
+      years.push(year);
+      balanceHistory.push(total);
+      yearlySummaryData.push({ year, total, profit });
+
+      balanceChart.data.labels = years;
+      balanceChart.data.datasets[0].data = balanceHistory;
+
+      updateDisplay();
+    }
+
+    document.getElementById("nextYearBtn").addEventListener("click", nextYear);
+    updateDisplay();
+  </script>
+</body>
+</html>
